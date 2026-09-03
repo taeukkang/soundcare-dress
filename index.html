@@ -733,6 +733,13 @@
           if (m[1] === "FWIN") renderFwin(m[2]);
           if (m[1] === "RMAX") paintRmax();
           if (m[1] === "MODE") setActiveMode("MODE=" + m[2]);
+          // live manual state from GET: mirror the dress, never reset it
+          if (m[1] === "MPCT") {
+            lightOn = +m[2] > 0;
+            paintLightBtn();
+          }
+          if (m[1] === "MFLIP") document.getElementById("mflip").value = m[2];
+          if (m[1] === "MPAT") paintMpat(m[2]);
         }
       }
 
@@ -953,16 +960,18 @@
       holdBtn.addEventListener("pointercancel", endHold);
       holdBtn.addEventListener("contextmenu", (e) => e.preventDefault());
 
+      function paintMpat(pat) {
+        document
+          .querySelectorAll(".seg")
+          .forEach((x) => x.classList.toggle("active", x.dataset.mpat === pat));
+        document.getElementById("mflip").disabled = pat !== "ALT";
+      }
       // live updates while manual is running
       document.querySelectorAll(".seg").forEach(
         (b) =>
           (b.onclick = async () => {
-            document
-              .querySelectorAll(".seg")
-              .forEach((x) => x.classList.toggle("active", x === b));
-            const alt = b.dataset.mpat === "ALT";
-            document.getElementById("mflip").disabled = !alt;
-            if (alt) await send("MFLIP=" + val("mflip"));
+            paintMpat(b.dataset.mpat);
+            if (b.dataset.mpat === "ALT") await send("MFLIP=" + val("mflip"));
             send("MPAT=" + mpatVal());
           }),
       );
@@ -1055,7 +1064,7 @@
       paintRmax();
 
       // --- SHOW mode: scripted manual-mode sequences, run from the browser ---
-      let showWanted = false;
+      let showWanted = true; // Show is the working view; the page opens on it
       const SHOW_SETTING_IDS = [
         "walkPct0",
         "walkPct1",
